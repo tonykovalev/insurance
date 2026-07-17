@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients Client[]
+  leads   Lead[]
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policies Policy[]
+}
+
+model PolicyCategory {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  createdAt DateTime        @default(now())
+
+  subtypes     PolicySubtype[]
+  policies     Policy[]
+  leadPolicies LeadPolicy[]
+}
+
+model PolicySubtype {
+  id         String         @id @default(cuid())
+  name       String
+  createdAt  DateTime       @default(now())
+
+  categoryId String
+  category     PolicyCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  policies     Policy[]
+  leadPolicies LeadPolicy[]
+}
+
+model Policy {
+  id        String       @id @default(cuid())
+  number    String
+  status    PolicyStatus @default(ACTIVE)
+  startDate DateTime
+  endDate   DateTime
+  amount    Float
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  clientId   String
+  client     Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   PolicyCategory @relation(fields: [categoryId], references: [id])
+  subtypeId  String?
+  subtype    PolicySubtype?  @relation(fields: [subtypeId], references: [id])
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  status    LeadStatus @default(NEW)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  policies LeadPolicy[]
+}
+
+model LeadPolicy {
+  id             String   @id @default(cuid())
+  currentInsurer String
+  expiresAt      DateTime
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  leadId     String
+  lead       Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   PolicyCategory  @relation(fields: [categoryId], references: [id])
+  subtypeId  String?
+  subtype    PolicySubtype?  @relation(fields: [subtypeId], references: [id])
+}
+
+enum PolicyStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum LeadStatus {
+  NEW
+  IN_PROGRESS
+  WON
+  LOST
+}
